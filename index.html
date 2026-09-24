@@ -165,7 +165,8 @@
 
     <!-- SCREEN 3: RESULT -->
     <div id="resultScreen" class="screen-container screen-hidden p-4">
-        <div id="resultCard" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative overflow-hidden text-center border-4 transition-colors duration-500">
+        <!-- Hapus overflow-hidden di sini -->
+        <div id="resultCard" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative text-center border-4 transition-colors duration-500">
             
             <!-- Dynamic Animation Area -->
             <div id="mascotResult" class="mascot-container opacity-0 transform scale-50 transition-all duration-700 ease-out">
@@ -375,7 +376,8 @@
                 resultTitle.style.color = theme.color;
                 resultMessage.innerText = theme.msg;
                 
-                resultCard.className = `bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative overflow-hidden text-center border-4 transition-colors duration-500 ${theme.bgBorder}`;
+                // Hapus overflow-hidden di sini juga agar maskot bebas melompat
+                resultCard.className = `bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative text-center border-4 transition-colors duration-500 ${theme.bgBorder}`;
                 scoreRing.setAttribute('stroke', theme.ringColor);
                 
                 // Calculate dash offset for ring
@@ -441,7 +443,8 @@
                     // Massive Party Popper Effect for Perfect Score
                     var duration = 4000;
                     var animationEnd = Date.now() + duration;
-                    var defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 0 };
+                    // Ubah zIndex menjadi 9999 agar confetti melayang di atas segalanya
+                    var defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 9999 };
 
                     function randomInRange(min, max) {
                         return Math.random() * (max - min) + min;
@@ -474,14 +477,16 @@
                             angle: 60,
                             spread: 55,
                             origin: { x: 0 },
-                            colors: ['#10b981', '#34d399', '#fef08a']
+                            colors: ['#10b981', '#34d399', '#fef08a'],
+                            zIndex: 9999 // Tambahkan zIndex tinggi di sini juga
                         });
                         confetti({
                             particleCount: 5,
                             angle: 120,
                             spread: 55,
                             origin: { x: 1 },
-                            colors: ['#10b981', '#34d399', '#fef08a']
+                            colors: ['#10b981', '#34d399', '#fef08a'],
+                            zIndex: 9999 // Tambahkan zIndex tinggi di sini juga
                         });
 
                         if (Date.now() < end) {
