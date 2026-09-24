@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cek Nilai Seru!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Using a lightweight Confetti library for high scores -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                        'pop-in': 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                        'float': 'float 4s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        popIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.5)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            /* Fun background pattern */
+            background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
+            background-size: 30px 30px;
+            overflow: hidden; /* Prevent scrolling during animations */
+            touch-action: manipulation;
+        }
+
+        .screen-container {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9) translateY(20px);
+        }
+
+        .screen-visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+        }
+
+        .input-jump:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.2), 0 8px 10px -6px rgba(14, 165, 233, 0.1);
+        }
+
+        /* Number counter animation style */
+        .score-number {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Decorative background shapes */
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 6s ease-in-out infinite alternate;
+        }
+        .shape-1 { width: 150px; height: 150px; background: #e0f2fe; top: -50px; left: -50px; }
+        .shape-2 { width: 200px; height: 200px; background: #fef08a; bottom: -80px; right: -50px; animation-delay: 1s; }
+        .shape-3 { width: 100px; height: 100px; background: #fce7f3; top: 30%; right: -20px; animation-delay: 2s; }
+
+        /* Mascot Styles */
+        .mascot-container {
+            font-size: 5rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.1));
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen w-screen relative">
+
+    <!-- Decorative background elements -->
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+
+    <!-- SCREEN 1: LOGIN -->
+    <div id="loginScreen" class="screen-container screen-visible p-4">
+        <div class="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 relative overflow-hidden text-center border-4 border-white ring-1 ring-slate-100">
+            
+            <div class="mascot-container animate-bounce-slow">
+                🦉
+            </div>
+
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight mb-2">Halo Teman!</h1>
+            <p class="text-slate-500 font-medium mb-8">Yuk, cek nilai Multimedia kamu hari ini.</p>
+
+            <form id="loginForm" class="space-y-6">
+                <div class="relative">
+                    <label for="nisn" class="sr-only">Masukkan NISN</label>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="ph-bold ph-identification-card text-slate-400 text-xl"></i>
+                    </div>
+                    <input type="text" id="nisn" pattern="[0-9]*" inputmode="numeric" placeholder="Masukkan NISN Kamu..." required
+                        class="input-jump w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-lg font-bold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all text-center tracking-wider">
+                </div>
+                
+                <!-- Pesan Error Dinamis -->
+                <p id="errorMessage" class="text-rose-500 text-sm font-bold hidden -mt-2 mb-2 animate-wiggle">
+                    Ups! NISN tidak ditemukan.
+                </p>
+
+                <button type="submit" 
+                    class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 px-6 rounded-2xl text-lg shadow-[0_6px_0_0_#0284c7] hover:shadow-[0_4px_0_0_#0284c7] hover:translate-y-[2px] active:shadow-none active:translate-y-[6px] transition-all flex items-center justify-center gap-2 group">
+                    <span>Lihat Nilai</span>
+                    <i class="ph-bold ph-rocket-launch text-xl group-hover:animate-wiggle"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: LOADING -->
+    <div id="loadingScreen" class="screen-container screen-hidden z-20 bg-white/80 backdrop-blur-sm">
+        <div class="flex flex-col items-center">
+            <div class="text-6xl animate-spin mb-4">🌀</div>
+            <h2 class="text-xl font-bold text-brand-600 animate-pulse">Mencari nilaimu...</h2>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: RESULT -->
+    <div id="resultScreen" class="screen-container screen-hidden p-4">
+        <div id="resultCard" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative overflow-hidden text-center border-4 transition-colors duration-500">
+            
+            <!-- Dynamic Animation Area -->
+            <div id="mascotResult" class="mascot-container opacity-0 transform scale-50 transition-all duration-700 ease-out">
+                <!-- Emoji injected here -->
+            </div>
+
+            <!-- Greeting Name -->
+            <h3 id="studentNameDisplay" class="text-xl font-bold text-slate-700 mb-4 opacity-0 transform translate-y-4 transition-all duration-500 delay-200">
+                Halo, Teman!
+            </h3>
+
+            <!-- Subject -->
+            <div class="inline-flex items-center justify-center gap-2 px-3 py-1 bg-slate-100 rounded-full mb-6">
+                <i class="ph-fill ph-monitor-play text-brand-500"></i>
+                <span class="text-sm font-bold text-slate-600 tracking-wide uppercase">Multimedia</span>
+            </div>
+
+            <!-- Score Display -->
+            <div class="relative flex justify-center items-center h-32 mb-4">
+                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#f1f5f9" stroke-width="8" />
+                    <circle id="scoreRing" cx="50" cy="50" r="45" fill="none" stroke="#0ea5e9" stroke-width="8" 
+                            stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" 
+                            class="transition-all duration-1500 ease-out transform -rotate-90 origin-center" />
+                </svg>
+                <div class="text-5xl font-black text-slate-800 score-number" id="finalScore">0</div>
+            </div>
+
+            <!-- Dynamic Message -->
+            <h2 id="resultTitle" class="text-2xl font-black mb-2 opacity-0 transform translate-y-4 transition-all duration-500 delay-300">
+                Luar Biasa!
+            </h2>
+            <p id="resultMessage" class="text-slate-500 font-medium mb-8 opacity-0 transform translate-y-4 transition-all duration-500 delay-500">
+                Kamu hebat banget! Pertahankan nilaimu.
+            </p>
+
+            <!-- Back Button -->
+            <button id="backBtn" 
+                class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-2xl text-base shadow-[0_4px_0_0_#cbd5e1] hover:shadow-[0_2px_0_0_#cbd5e1] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all flex items-center justify-center gap-2 opacity-0 transition-opacity duration-500 delay-700">
+                <i class="ph-bold ph-arrow-left"></i>
+                <span>Cek Lagi</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginScreen = document.getElementById('loginScreen');
+            const loadingScreen = document.getElementById('loadingScreen');
+            const resultScreen = document.getElementById('resultScreen');
+            const loginForm = document.getElementById('loginForm');
+            const nisnInput = document.getElementById('nisn');
+            const backBtn = document.getElementById('backBtn');
+
+            // Result Elements
+            const mascotResult = document.getElementById('mascotResult');
+            const studentNameDisplay = document.getElementById('studentNameDisplay');
+            const finalScoreEl = document.getElementById('finalScore');
+            const scoreRing = document.getElementById('scoreRing');
+            const resultCard = document.getElementById('resultCard');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // ==============================================================================
+            // ⚠️ PASTE LINK CSV GOOGLE SHEET ANDA DI SINI
+            // ==============================================================================
+            const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaVP_kTN4bXqmC4MGJ6-XEy7Ek_vI-oUT6i7ywq4faTb37RDjwQqhQpUF4X7bo6TKuqXfCS4DamPHI/pub?output=csv"; 
+
+            // Fungsi untuk mengubah format teks CSV dari Sheet menjadi Object Javascript
+            function parseCSV(csvText) {
+                const lines = csvText.split('\n');
+                const data = {};
+                
+                // Mulai dari i=1 untuk melewati baris header (judul kolom)
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const parts = line.split(',');
+                    if (parts.length >= 2) {
+                        const nisn = parts[0].trim();
+                        const name = parts[1] ? parts[1].trim() : 'Siswa'; // Ambil nama dari Kolom B (index 1)
+                        const score = parts[2] ? parseInt(parts[2].trim(), 10) : 0; // Ambil nilai dari Kolom C (index 2)
+                        
+                        if(!isNaN(score)) {
+                            data[nisn] = { score: score, name: name };
+                        }
+                    }
+                }
+                return data;
+            }
+
+            async function getStudentData() {
+                try {
+                    const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                    if (!response.ok) throw new Error("Gagal mengambil data jaringan");
+                    const csvText = await response.text();
+                    return parseCSV(csvText);
+                } catch (error) {
+                    console.error("Error mengambil data dari Google Sheet:", error);
+                    return null; // Akan memicu error message di UI
+                }
+            }
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nisn = nisnInput.value.trim();
+                if(!nisn) return;
+
+                // Sembunyikan error sebelumnya
+                errorMessage.classList.add('hidden');
+                
+                // Tampilkan loading screen SEGERA saat tombol diklik
+                switchScreen(loginScreen, loadingScreen);
+
+                // Ambil data dari Google Sheet (atau data fallback)
+                const studentDatabase = await getStudentData();
+                
+                if (studentDatabase && studentDatabase[nisn] !== undefined) {
+                    const studentData = studentDatabase[nisn];
+                    
+                    // Beri sedikit delay agar efek loading terlihat (UX)
+                    setTimeout(() => {
+                        showResult(studentData.score, studentData.name);
+                    }, 800); 
+                } else {
+                    // Jika NISN tidak ditemukan atau gagal fetch data
+                    setTimeout(() => {
+                        switchScreen(loadingScreen, loginScreen);
+                        errorMessage.innerText = !studentDatabase ? "Koneksi terputus. Coba lagi!" : "Ups! NISN tidak ditemukan.";
+                        errorMessage.classList.remove('hidden');
+                    }, 800);
+                }
+            });
+
+            backBtn.addEventListener('click', () => {
+                resetResultScreen();
+                switchScreen(resultScreen, loginScreen);
+                nisnInput.value = '';
+                errorMessage.classList.add('hidden');
+                nisnInput.focus();
+            });
+
+            function switchScreen(hideScreen, showScreen) {
+                hideScreen.classList.remove('screen-visible');
+                hideScreen.classList.add('screen-hidden');
+                
+                setTimeout(() => {
+                    showScreen.classList.remove('screen-hidden');
+                    showScreen.classList.add('screen-visible');
+                }, 300); // Wait for transition
+            }
+
+            function showResult(score, name) {
+                prepareResultData(score, name);
+                switchScreen(loadingScreen, resultScreen);
+                
+                // Trigger animations after screen is visible
+                setTimeout(() => {
+                    animateScore(score);
+                }, 400);
+            }
+
+            function prepareResultData(score, name) {
+                // Circumference of the SVG circle (2 * pi * r) where r=45 is approx 283
+                const circumference = 283;
+                
+                let theme = {};
+
+                if (score >= 90) {
+                    theme = {
+                        emoji: '🤩',
+                        title: 'Sempurna!',
+                        msg: 'Wah, kamu jago banget Multimedianya! Pertahankan ya!',
+                        color: '#10b981', // emerald-500
+                        bgBorder: 'border-emerald-100',
+                        ringColor: '#34d399', // emerald-400
+                        animation: 'confetti'
+                    };
+                } else if (score >= 75) {
+                    theme = {
+                        emoji: '👍',
+                        title: 'Bagus Sekali!',
+                        msg: 'Kerja bagus! Sedikit lagi bisa dapat nilai sempurna.',
+                        color: '#3b82f6', // blue-500
+                        bgBorder: 'border-blue-100',
+                        ringColor: '#60a5fa', // blue-400
+                        animation: 'bounce'
+                    };
+                } else {
+                    theme = {
+                        emoji: '💪',
+                        title: 'Tetap Semangat!',
+                        msg: 'Jangan menyerah! Ayo belajar lebih giat lagi, kamu pasti bisa.',
+                        color: '#f59e0b', // amber-500
+                        bgBorder: 'border-amber-100',
+                        ringColor: '#fbbf24', // amber-400
+                        animation: 'wiggle'
+                    };
+                }
+
+                // Apply styles based on score
+                mascotResult.innerText = theme.emoji;
+                studentNameDisplay.innerText = `Halo, ${name}!`;
+                resultTitle.innerText = theme.title;
+                resultTitle.style.color = theme.color;
+                resultMessage.innerText = theme.msg;
+                
+                resultCard.className = `bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative overflow-hidden text-center border-4 transition-colors duration-500 ${theme.bgBorder}`;
+                scoreRing.setAttribute('stroke', theme.ringColor);
+                
+                // Calculate dash offset for ring
+                const offset = circumference - (score / 100) * circumference;
+                // Store target in a data attribute to animate later
+                scoreRing.dataset.targetOffset = offset;
+                resultCard.dataset.animationType = theme.animation;
+            }
+
+            function animateScore(targetScore) {
+                // 1. Pop in Mascot
+                mascotResult.classList.remove('opacity-0', 'scale-50');
+                mascotResult.classList.add('opacity-100', 'scale-100', 'animate-pop-in');
+
+                // 2. Animate Ring
+                setTimeout(() => {
+                    const offset = scoreRing.dataset.targetOffset;
+                    scoreRing.style.strokeDashoffset = offset;
+                }, 100);
+
+                // 3. Count Up Numbers
+                let startScore = 0;
+                const duration = 1500; // ms
+                const startTime = performance.now();
+
+                function updateCounter(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing function (easeOutQuart) for smoother slowdown at the end
+                    const easeProgress = 1 - Math.pow(1 - progress, 4);
+                    
+                    const currentScore = Math.floor(easeProgress * targetScore);
+                    finalScoreEl.innerText = currentScore;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        finalScoreEl.innerText = targetScore;
+                        triggerFinalEffects(targetScore, resultCard.dataset.animationType);
+                    }
+                }
+                requestAnimationFrame(updateCounter);
+
+                // 4. Fade in text elements
+                setTimeout(() => {
+                    studentNameDisplay.classList.remove('opacity-0', 'translate-y-4');
+                    studentNameDisplay.classList.add('opacity-100', 'translate-y-0');
+
+                    resultTitle.classList.remove('opacity-0', 'translate-y-4');
+                    resultTitle.classList.add('opacity-100', 'translate-y-0');
+                    
+                    resultMessage.classList.remove('opacity-0', 'translate-y-4');
+                    resultMessage.classList.add('opacity-100', 'translate-y-0');
+                    
+                    backBtn.classList.remove('opacity-0');
+                    backBtn.classList.add('opacity-100');
+                }, 1000);
+            }
+
+            function triggerFinalEffects(score, type) {
+                if (score === 100) {
+                    // Massive Party Popper Effect for Perfect Score
+                    var duration = 4000;
+                    var animationEnd = Date.now() + duration;
+                    var defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 0 };
+
+                    function randomInRange(min, max) {
+                        return Math.random() * (max - min) + min;
+                    }
+
+                    var interval = setInterval(function() {
+                        var timeLeft = animationEnd - Date.now();
+
+                        if (timeLeft <= 0) {
+                            return clearInterval(interval);
+                        }
+
+                        var particleCount = 70 * (timeLeft / duration);
+                        // since particles fall down, start a bit higher than random
+                        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+                    }, 250);
+                    
+                    // Add party popper emoji to mascot if it's 100
+                    mascotResult.innerText = '🎉💯🎉';
+                    mascotResult.classList.add('animate-bounce');
+                } else if (type === 'confetti') {
+                    // Standard confetti for scores >= 90 but < 100
+                    var duration = 3000;
+                    var end = Date.now() + duration;
+
+                    (function frame() {
+                        confetti({
+                            particleCount: 5,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 },
+                            colors: ['#10b981', '#34d399', '#fef08a']
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 },
+                            colors: ['#10b981', '#34d399', '#fef08a']
+                        });
+
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                    mascotResult.classList.add('animate-bounce');
+                } else if (type === 'bounce') {
+                    mascotResult.classList.add('animate-bounce-slow');
+                } else {
+                    mascotResult.classList.add('animate-wiggle');
+                }
+            }
+
+            function resetResultScreen() {
+                // Reset elements to initial hidden/zero states for the next run
+                finalScoreEl.innerText = '0';
+                scoreRing.style.strokeDashoffset = '283';
+                
+                mascotResult.classList.add('opacity-0', 'scale-50');
+                mascotResult.classList.remove('opacity-100', 'scale-100', 'animate-pop-in', 'animate-bounce', 'animate-bounce-slow', 'animate-wiggle');
+                
+                studentNameDisplay.classList.add('opacity-0', 'translate-y-4');
+                studentNameDisplay.classList.remove('opacity-100', 'translate-y-0');
+
+                resultTitle.classList.add('opacity-0', 'translate-y-4');
+                resultTitle.classList.remove('opacity-100', 'translate-y-0');
+                
+                resultMessage.classList.add('opacity-0', 'translate-y-4');
+                resultMessage.classList.remove('opacity-100', 'translate-y-0');
+                
+                backBtn.classList.add('opacity-0');
+                backBtn.classList.remove('opacity-100');
+            }
+        });
+    </script>
+</body>
+</html>
